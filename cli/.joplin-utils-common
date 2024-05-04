@@ -8,6 +8,69 @@ __log_error () {
   echo "[ERROR] $1" >&2
 }
 
+__joplin_utils_api_get () {
+  local concept="$1"
+  shift
+  local fields="${1-}"
+  local method="GET"
+  local params="token=${JOPLIN_TOKEN}"
+  if [[ -n $fields ]]; then
+    params="${params}&fields=$fields"
+  fi
+  curl -so- -X "$method" "${JOPLIN_ENDPOINT}/${concept}?${params}"
+}
+
+__joplin_utils_api_list () {
+  local concept="$1"
+  shift
+  local fields="${1-}"
+  local method="GET"
+  while true
+  do
+    params="token=${JOPLIN_TOKEN}"
+    if (( page > 0 )); then
+      params="${params}&page=$page"
+    fi
+    params="${params}&limit=${limit}&order_by=updated_time&order_dir=DESC"
+    if [[ -n $fields ]]; then
+      params="${params}&fields=$fields"
+    fi
+    result="$(curl -so- -X "$method" "${JOPLIN_ENDPOINT}/${concept}?${params}")"
+    has_more="$(jq .has_more <<<"$result")"
+    echo "$result"
+    if [[ $has_more != 'true' ]]; then
+      break
+    fi
+    (( page++ ))
+  done
+}
+
+__joplin_utils_api_update () {
+  local concept="$1"
+  shift
+  local payload="$1"
+  local params="token=${JOPLIN_TOKEN}"
+  local method="PUT"
+  curl -so- -X "$method" "${JOPLIN_ENDPOINT}/${concept}?${params}" ---data "$payload"
+}
+
+__joplin_utils_api_create () {
+  local concept="$1"
+  shift
+  local payload="$1"
+  local params="token=${JOPLIN_TOKEN}"
+  local method="POST"
+  curl -so- -X "$method" "${JOPLIN_ENDPOINT}/${concept}?${params}" -d "$payload"
+}
+
+__joplin_utils_api_delete () {
+  local concept="$1"
+  shift
+  local params="token=${JOPLIN_TOKEN}"
+  local method="DELETE"
+  curl -so- -X "$method" "${JOPLIN_ENDPOINT}/${concept}?${params}"
+}
+
 __joplin_utils_api () {
   if [[ -z $JOPLIN_TOKEN ]]; then
     __log_error "JOPLIN_TOKEN environment variable is not defined"
@@ -23,31 +86,28 @@ __joplin_utils_api () {
   fi
   local operation="$1"
   shift
-  local concept="$1"
-  shift
-  local fields="${1-}"
   local method=
-  if [[ $operation == "get" ]] || [[ $operation == "list" ]]; then
-    method="GET"
-  elif [[ $operation == "delete" ]]; then
-    method="DELETE"
-  fi
-  while true
-  do
-    params="token=${JOPLIN_TOKEN}&limit=${limit}"
-    if (( page > 0 )); then
-      params="${params}&page=$page"
-    fi
-    if [[ -n $fields ]]; then
-      params="${params}&fields=$fields"
-    fi
-    result="$(curl -so- -X "$method" "${JOPLIN_ENDPOINT}/${concept}?${params}")"
-    has_more="$(jq .has_more <<<"$result")"
-    echo "$result"
-    if [[ $has_more != 'true' ]]; then
-      break
-    fi
-    (( page++ ))
-  done
+  case $operation in
+    get)
+      __joplin_utils_api_get "$@"
+      ;;
+    list)
+      __joplin_utils_api_list "$@"
+      ;;
+    create)
+      __joplin_utils_api_create "$@"
+      ;;
+    update)
+      __joplin_utils_api_update "$@"
+      ;;
+    delete)
+      __joplin_utils_api_delete "$@"
+      ;;
+    *)
+      __log_error "Invalid operation '$operation'"
+      return 1
+      ;;
+  esac
+  return 0
 }
 

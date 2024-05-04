@@ -3,8 +3,10 @@ readonly THIS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && 
 source "${THIS_DIR}"/.joplin-utils-common
 
 main () {
-  local fields="${1:-id,title}"
-  __joplin_utils_api list notes "$fields" # | jq -r '.items[] | .id, .title' | paste - -
+  local id=$1
+  shift
+  local payload=$1
+  __joplin_utils_api update "notes/$id" "$payload" | jq .
 }
 
 main ${1+"$@"}
