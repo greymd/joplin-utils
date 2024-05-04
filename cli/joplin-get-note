@@ -4,7 +4,12 @@ source "${THIS_DIR}"/.joplin-utils-common
 
 main () {
   local id=$1
-  __joplin_utils_api get "notes/$id" "id,title,body" | jq .
+  shift
+  local fields="${1-}"
+  if [[ -n $fields ]]; then
+    fields=",$fields"
+  fi
+  __joplin_utils_api get "notes/$id" "id,title,body,parent_id$fields" | jq .
 }
 
 main ${1+"$@"}
