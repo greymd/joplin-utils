@@ -1,0 +1,53 @@
+#!/bin/bash
+set -u
+
+JOPLIN_TOKEN="${JOPLIN_TOKEN:-}"
+JOPLIN_ENDPOINT="http://localhost:41184"
+
+__log_error () {
+  echo "[ERROR] $1" >&2
+}
+
+__joplin_utils_api () {
+  if [[ -z $JOPLIN_TOKEN ]]; then
+    __log_error "JOPLIN_TOKEN environment variable is not defined"
+    return 1
+  fi
+  local limit=100
+  local page=0
+  local has_more='false'
+  local params=
+  if ! type jq 2>&1 > /dev/null; then
+    __log_error "'jq' command is required"
+    return 1
+  fi
+  local operation="$1"
+  shift
+  local concept="$1"
+  shift
+  local fields="${1-}"
+  local method=
+  if [[ $operation == "get" ]] || [[ $operation == "list" ]]; then
+    method="GET"
+  elif [[ $operation == "delete" ]]; then
+    method="DELETE"
+  fi
+  while true
+  do
+    params="token=${JOPLIN_TOKEN}&limit=${limit}"
+    if (( page > 0 )); then
+      params="${params}&page=$page"
+    fi
+    if [[ -n $fields ]]; then
+      params="${params}&fields=$fields"
+    fi
+    result="$(curl -so- -X "$method" "${JOPLIN_ENDPOINT}/${concept}?${params}")"
+    has_more="$(jq .has_more <<<"$result")"
+    echo "$result"
+    if [[ $has_more != 'true' ]]; then
+      break
+    fi
+    (( page++ ))
+  done
+}
+

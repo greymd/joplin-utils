@@ -1,0 +1,10 @@
+#!/bin/bash
+readonly THIS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+source "${THIS_DIR}"/.joplin-utils-common
+
+main () {
+  local fields="${1:-id,title}"
+  __joplin_utils_api list notes "$fields" | jq -r '.items[] | .id, .title' | paste - -
+}
+
+main ${1+"$@"}
