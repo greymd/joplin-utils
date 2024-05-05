@@ -3,11 +3,13 @@ readonly THIS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && 
 source "${THIS_DIR}"/.joplin-utils-common
 
 main () {
+  local id=$1
+  shift
   local fields="${1-}"
   if [[ -n $fields ]]; then
     fields=",$fields"
   fi
-  __joplin_utils_api list notes "id,title$fields" | jq ".items[]"
+  __joplin_utils_api get "resources/$id" "id,title$fields" | jq .
 }
 
 main ${1+"$@"}

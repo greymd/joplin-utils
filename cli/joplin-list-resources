@@ -7,7 +7,7 @@ main () {
   if [[ -n $fields ]]; then
     fields=",$fields"
   fi
-  __joplin_utils_api list notes "id,title$fields" | jq ".items[]"
+  __joplin_utils_api list resources "id,title$fields" | jq ".items[]"
 }
 
 main ${1+"$@"}
