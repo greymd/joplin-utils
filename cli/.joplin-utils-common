@@ -63,6 +63,32 @@ __joplin_utils_api_create () {
   curl -so- -X "$method" "${JOPLIN_ENDPOINT}/${concept}?${params}" -d "$payload"
 }
 
+# Usage:
+# __joplin_utils_api_create_data "resources" "/path/to/file.png" '{"title":"file.png"}'
+__joplin_utils_api_create_data () {
+  local concept="$1"
+  shift
+  local payload_path="$1"
+  shift
+  local props="${1-}"
+  local params="token=${JOPLIN_TOKEN}"
+  local method="POST"
+  if ! type jq &> /dev/null; then
+    __log_error "'jq' command is required"
+    return 1
+  fi
+  if [[ ! -f $payload_path ]]; then
+    __log_error "File '$payload_path' does not exist"
+    return 1
+  fi
+  if [[ -n $props ]]; then
+    params="${params}&props=$(jq -c . <<<"$props")"
+  fi
+  curl -so- -X "$method" "${JOPLIN_ENDPOINT}/${concept}?${params}" -F "data=@${payload_path}" ${props:+-F "props=$(jq -c . <<<"$props")"}
+  # Example usage:
+  ## curl -so- -X POST "http://localhost:41184/resources?token=${JOPLIN_TOKEN}" -F data=@test.png -F 'props={"title":"test.png"}'
+}
+
 __joplin_utils_api_delete () {
   local concept="$1"
   shift

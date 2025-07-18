@@ -1,0 +1,12 @@
+#!/bin/bash
+readonly THIS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+source "${THIS_DIR}"/.joplin-utils-common
+
+main () {
+  local payload_path=$1
+  local payload_fname=
+  payload_fname="$(basename "$payload_path")"
+  __joplin_utils_api_create_data "resources" "$payload_path" "{\"title\":\"${payload_fname//\"/\\\"}\"}"
+}
+
+main ${1+"$@"}
